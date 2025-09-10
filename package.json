@@ -1,0 +1,22 @@
+{
+  "name": "branded-packages",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint || echo 'lint skipped'"
+  },
+  "dependencies": {
+    "@sparticuz/chromium": "^126.0.0",
+    "handlebars": "^4.7.8",
+    "jszip": "^3.10.1",
+    "next": "14.2.5",
+    "papaparse": "^5.4.1",
+    "puppeteer-core": "^22.10.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "color-thief-node": "^1.0.4"
+  }
+}

@@ -1,0 +1,55 @@
+import { NextRequest, NextResponse } from "next/server";
+import { parseCSV } from "@/lib/csv";
+import { renderTemplate } from "@/lib/templates";
+import { htmlToPdf } from "@/lib/pdf";
+import { extractPrimaryColor, ensureContrast } from "@/lib/color";
+import { zipFiles } from "@/lib/zip";
+
+export const runtime = "nodejs";
+
+export async function POST(req: NextRequest) {
+  const form = await req.formData();
+  const csvFile = form.get("csv") as File | null;
+
+  if (!csvFile) return NextResponse.json({ error: "csv is required" }, { status: 400 });
+
+  const csvText = await csvFile.text();
+  const rows = parseCSV(csvText);
+
+  const outputs: {name: string; content: Buffer}[] = [];
+
+  for (const row of rows) {
+    const companyName = (row.company_name || "").trim();
+    if (!companyName) continue;
+    if (!row.logo_base64) continue;
+
+    const logoBuf = Buffer.from(row.logo_base64, "base64");
+    const primaryColor = row.primary_color || await extractPrimaryColor(logoBuf);
+    const { textOnPrimary } = ensureContrast(primaryColor);
+
+    const templateData = {
+      COMPANY_NAME: companyName,
+      BRAND: { primary: primaryColor, textOnPrimary },
+      LOGO_DATAURL: `data:image/png;base64,${row.logo_base64}`
+    };
+
+    const bookletHtml = await renderTemplate("booklet", templateData);
+    const formsHtml   = await renderTemplate("forms", templateData);
+
+    const bookletPdf = await htmlToPdf(bookletHtml, { format: "A4" });
+    const formsPdf   = await htmlToPdf(formsHtml, { format: "A4" });
+
+    outputs.push({ name: `${companyName}_Booklet.pdf`, content: Buffer.from(bookletPdf) });
+    outputs.push({ name: `${companyName}_Forms.pdf`,   content: Buffer.from(formsPdf) });
+  }
+
+  const zip = await zipFiles(outputs);
+
+  return new NextResponse(zip, {
+    status: 200,
+    headers: {
+      "Content-Type": "application/zip",
+      "Content-Disposition": `attachment; filename="Batch_Packages.zip"`
+    }
+  });
+}
