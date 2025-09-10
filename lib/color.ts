@@ -1,0 +1,4 @@
+import Jimp from "jimp";
+function toHex(v:number){const n=Math.max(0,Math.min(255,Math.round(v)));return n.toString(16).padStart(2,"0");}
+export async function extractPrimaryColor(imageBuffer:Buffer):Promise<string>{const img=await Jimp.read(imageBuffer);img.resize(48,48);let rSum=0,gSum=0,bSum=0,count=0;for(let y=0;y<img.getHeight();y++){for(let x=0;x<img.getWidth();x++){const {r,g,b,a}=Jimp.intToRGBA(img.getPixelColor(x,y));if(a>10){rSum+=r;gSum+=g;bSum+=b;count++;}}}if(!count)return "#3b82f6";const rAvg=rSum/count,gAvg=gSum/count,bAvg=bSum/count;return `#${toHex(rAvg)}${toHex(gAvg)}${toHex(bAvg)}`;}
+export function ensureContrast(bgHex:string):{textOnPrimary:"#000000"|"#FFFFFF"}{const hex=bgHex.replace("#","");const r=parseInt(hex.slice(0,2),16);const g=parseInt(hex.slice(2,4),16);const b=parseInt(hex.slice(4,6),16);const L=(0.2126*r+0.7152*g+0.0722*b)/255;return {textOnPrimary: L>0.6?"#000000":"#FFFFFF"};}
